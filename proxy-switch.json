@@ -9,7 +9,7 @@
         "配置文件: ~/.config/proxy-switch/config.json（可用 proxy edit 打开）"
     ],
     "url": "https://github.com/cv0w0vc/proxy-switch/archive/refs/tags/v1.0.0.zip",
-    "hash": "把 Get-FileHash 结果填这里",
+    "hash": "6179683AC06DEA1F5FDB63AF78360C855081FD52DEEC6022CC190BDCE78BE293",
     "extract_dir": "proxy-switch-1.0.0",
     "installer": {
         "script": "& \"$dir\\install.ps1\""
