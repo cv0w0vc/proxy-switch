@@ -1,7 +1,7 @@
-﻿# ============================================================================
+# ============================================================================
 #  ProxySwitch - 终端与 Git 代理一键切换
 #
-#  命令: proxy on|off|status|set|set-auth|unset-auth|edit|config|test|autodetect
+#  命令: proxy on|off|status|set|set-auth|unset-auth|edit|config|test
 #  配置: ~/.config/proxy-switch/config.json
 #  依赖: Git（可选，配置 gitProxy=false 时无需）
 # ============================================================================
@@ -16,7 +16,6 @@ function Get-ProxyConfig {
             proxyAddr      = "http://127.0.0.1:7890"
             authUser       = ""
             authPass       = ""
-            autoDetectPort = 7890
             gitProxy       = $true
         }
     }
@@ -25,7 +24,6 @@ function Get-ProxyConfig {
         proxyAddr      = if ($raw.proxyAddr) { [string]$raw.proxyAddr } else { "http://127.0.0.1:7890" }
         authUser       = if ($null -ne $raw.authUser) { [string]$raw.authUser } else { "" }
         authPass       = if ($null -ne $raw.authPass) { [string]$raw.authPass } else { "" }
-        autoDetectPort = if ($null -ne $raw.autoDetectPort) { [int]$raw.autoDetectPort } else { 0 }
         gitProxy       = if ($null -ne $raw.gitProxy) { [bool]$raw.gitProxy } else { $true }
     }
 }
@@ -102,7 +100,6 @@ function Show-ProxyStatus {
     Write-Host "=== ProxySwitch 状态 ==="
     Write-Host ("代理地址 : " + (Get-MaskedProxyAddr))
     Write-Host ("认证     : " + $(if ($cfg.authUser) { "已启用 ($($cfg.authUser))" } else { "无" }))
-    Write-Host ("自动检测 : " + $(if ($cfg.autoDetectPort) { "端口 $($cfg.autoDetectPort)" } else { "关闭" }))
     Write-Host ("Git 管理 : " + $(if ($cfg.gitProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ""
     Write-Host ("终端 HTTP_PROXY : " + [string]$env:HTTP_PROXY)
@@ -162,7 +159,6 @@ function Show-ProxyConfig {
     Write-Host "=== 配置文件: $script:ConfigPath ==="
     Write-Host ("代理地址 : " + (Get-MaskedProxyAddr))
     Write-Host ("认证用户 : " + $(if ($cfg.authUser) { $cfg.authUser } else { "(无)" }))
-    Write-Host ("自动检测 : " + $(if ($cfg.autoDetectPort) { $cfg.autoDetectPort } else { "0 (关闭)" }))
     Write-Host ("Git 管理 : " + $cfg.gitProxy)
 }
 
@@ -183,31 +179,6 @@ function Test-ProxyConnection {
     }
     catch {
         Write-Host ("代理测试失败: " + $_.Exception.Message) -ForegroundColor Red
-    }
-}
-
-# ---------------- 自动检测 ----------------
-
-function Test-PortOpen {
-    param([int]$Port)
-    try {
-        $client = New-Object System.Net.Sockets.TcpClient
-        $async = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
-        $ok = $async.AsyncWaitHandle.WaitOne(500)
-        if ($ok) { $client.EndConnect($async) }
-        $client.Close()
-        return $ok
-    }
-    catch { return $false }
-}
-
-function Invoke-ProxyAutoDetect {
-    $cfg = Get-ProxyConfig
-    if (-not $cfg.autoDetectPort) { return }
-    if ($env:HTTP_PROXY) { return }
-    if (Test-PortOpen $cfg.autoDetectPort) {
-        Set-ProxyState -State on -Scope all -Quiet
-        Write-Host ("代理客户端已检测到，自动开启: " + (Get-MaskedProxyAddr)) -ForegroundColor DarkGray
     }
 }
 
@@ -241,7 +212,6 @@ function proxy {
         "edit"       { Open-ProxyConfig }
         "config"     { Show-ProxyConfig }
         "test"       { Test-ProxyConnection }
-        "autodetect" { Invoke-ProxyAutoDetect }
         "help"       { Show-ProxyHelp }
         default      { Write-Host "未知命令: $Action"; Show-ProxyHelp }
     }
@@ -261,7 +231,6 @@ ProxySwitch - 终端与 Git 代理一键切换
   proxy config                    查看配置文件
   proxy edit                      用编辑器打开配置文件
   proxy test                      测试代理连通性
-  proxy autodetect                检测本地代理端口并自动开启
 "@
 }
 

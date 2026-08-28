@@ -2,7 +2,7 @@
 
 终端与 Git 代理一键切换（Windows / PowerShell）。
 
-一条命令开关**终端代理**（环境变量）和 **Git 代理**（`git config`），支持认证、自动检测、配置命令化。
+一条命令开关**终端代理**（环境变量）和 **Git 代理**（`git config`），支持认证、配置命令化。
 
 ## 安装
 
@@ -14,7 +14,7 @@ scoop install proxy-switch
 
 安装器会自动：
 1. 安装模块到 `Documents\PowerShell\Modules\ProxySwitch`（PS7 与 PS5.1 都装）
-2. 在 `$PROFILE` 追加 `Import-Module ProxySwitch` 和 `proxy autodetect`
+2. 在 `$PROFILE` 追加 `Import-Module ProxySwitch`
 
 **重开终端**后即可使用。
 
@@ -50,7 +50,6 @@ proxy unset-auth                清除认证
 proxy config                    查看配置
 proxy edit                      用编辑器打开配置文件
 proxy test                      测试代理连通性
-proxy autodetect                检测本地代理端口并自动开启（安装后已自动调用）
 ```
 
 ## 配置
@@ -61,7 +60,6 @@ proxy autodetect                检测本地代理端口并自动开启（安装
 |------|--------|------|
 | `proxyAddr` | `http://127.0.0.1:7890` | 代理地址 |
 | `authUser` / `authPass` | 空 | 认证信息（`proxy set-auth` 写入，显示时打码） |
-| `autoDetectPort` | `7890` | 新终端启动时检测该端口，有代理客户端在跑就自动开启；`0` 关闭 |
 | `gitProxy` | `true` | 是否把 Git 代理一起开关 |
 
 > 代理地址中的特殊字符（`@`、`:`、`/`）需要 URL 编码，`proxy set-auth` 已自动处理。

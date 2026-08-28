@@ -1,10 +1,10 @@
-﻿# ============================================================================
+# ============================================================================
 #  ProxySwitch 安装脚本（scoop installer 调用，也可手动运行）
 #
 #  作用:
 #    1. 复制模块到 Documents\PowerShell\Modules\ProxySwitch 和 WindowsPowerShell\Modules
 #    2. 向 PowerShell 7 / Windows PowerShell 5.1 的 $PROFILE 追加
-#       Import-Module ProxySwitch + proxy autodetect（幂等，可重复安装）
+#       Import-Module ProxySwitch（幂等，可重复安装）
 # ============================================================================
 $ErrorActionPreference = "Stop"
 
@@ -33,7 +33,6 @@ $ProfileFiles = @(
 $block = @(
     "# === ProxySwitch begin ===",
     "Import-Module $ModuleName",
-    "proxy autodetect",
     "# === ProxySwitch end ==="
 ) -join "`r`n"
 
