@@ -1,0 +1,8 @@
+# 个人 agent 配置与 skills（不随仓库分发）
+.agents/
+
+# 通用
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
