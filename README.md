@@ -82,20 +82,19 @@ proxy-switch/
 │   └── ProxySwitch.psd1   # 模块清单
 ├── install.ps1            # 安装脚本（scoop installer 调用）
 ├── uninstall.ps1          # 卸载脚本（scoop uninstaller 调用）
+├── release.ps1            # 一键发布脚本（打包+算哈希+更新 manifest）
 ├── proxy-switch.json      # scoop manifest（含 installer/uninstaller）
 └── README.md
 ```
 
-发布新版本：
-1. 提交改动并打 tag：`git tag v1.0.1 && git push --tags`
-2. 下载 GitHub 自动生成的源码包，计算哈希并确认解压目录名：
-   ```powershell
-   curl.exe -L -o v1.0.1.zip "https://github.com/cv0w0vc/proxy-switch/archive/refs/tags/v1.0.1.zip"
-   Get-FileHash v1.0.1.zip -Algorithm SHA256
-   Expand-Archive v1.0.1.zip -DestinationPath .\t -Force
-   (Get-ChildItem .\t).Name
-   ```
-3. 把哈希和实际解压目录名填入 `proxy-switch.json`（`version` / `url` / `hash` / `extract_dir` 一起更新）
+发布新版本（一条命令）：
+
+```powershell
+.\release.ps1                # 自动 patch 版本 +1（1.0.1 -> 1.0.2）
+.\release.ps1 -Version 1.1.0 # 指定版本
+```
+
+脚本自动完成：提交改动 → 打 tag → 推送 → 下载源码包 → 计算哈希 → 更新 `proxy-switch.json` 与 `ModuleVersion` → 推送 manifest。之后新电脑 `scoop update && scoop install proxy-switch` 即可。
 
 ## License
 
