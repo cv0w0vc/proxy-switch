@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "PowerShell 模块：终端与 Git 代理一键切换（proxy on/off/status/set/set-auth/edit/test）",
   "homepage": "https://github.com/cv0w0vc/proxy-switch",
   "license": "MIT",
@@ -8,9 +8,9 @@
     "用法: proxy on / proxy off / proxy set http://127.0.0.1:7890 / proxy status",
     "配置文件: ~/.config/proxy-switch/config.json（可用 proxy edit 打开）"
   ],
-  "url": "https://github.com/cv0w0vc/proxy-switch/archive/refs/tags/v1.0.3.zip",
-  "hash": "CD36755CBF6FFB45E0E88D9F7D7B56C91B40B49BE6C2CCCF9326964B8D6BB37F",
-  "extract_dir": "proxy-switch-1.0.3",
+  "url": "https://github.com/cv0w0vc/proxy-switch/archive/refs/tags/v1.0.4.zip",
+  "hash": "49ADD40A49B280BDCF3EDFD68C84635FEA01DEF60600B0B0D731363AA1C6CD3F",
+  "extract_dir": "proxy-switch-1.0.4",
   "installer": {
     "script": "& \"$dir\\install.ps1\""
   },
