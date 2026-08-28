@@ -1,8 +1,8 @@
 # ProxySwitch
 
-终端与 Git 代理一键切换（Windows / PowerShell）。
+终端 / Git / npm / pip 代理一键切换（Windows / PowerShell）。
 
-一条命令开关**终端代理**（环境变量）和 **Git 代理**（`git config`），支持认证、配置命令化。
+一条命令开关**终端代理**（环境变量）、**Git 代理**（`git config`）、**npm 代理**（`.npmrc`）和 **pip 代理**（`pip.ini`），支持认证、配置命令化。
 
 ## 安装
 
@@ -31,18 +31,24 @@ scoop install proxy-switch
 scoop uninstall proxy-switch
 ```
 
-scoop 卸载时会自动运行 `uninstall.ps1`，清理：
+scoop 卸载时会自动运行 `uninstall.ps1`，**完全清理**：
 
-1. 模块目录（PS7 与 PS5.1 的 `Documents\...\Modules\ProxySwitch`）
-2. `$PROFILE` 中的 ProxySwitch 引导块（只删标记块，保留其他内容）
+1. 运行时代理配置：Git（`git config --global`）、npm（`~/.npmrc`）、pip（`pip.ini`）及当前会话环境变量
+2. 模块目录（PS7 与 PS5.1 的 `Documents\...\Modules\ProxySwitch`）
+3. `$PROFILE` 中的 ProxySwitch 引导块（只删标记块，保留其他内容）
+4. 配置文件 `~/.config/proxy-switch/config.json`（含认证信息，目录空则一并删除）
+
+> 卸载会清掉代理配置与认证信息，重装后需重新执行 `proxy set` 与 `proxy set-auth`。
 
 手动安装的也可以直接运行 `.\uninstall.ps1` 完成同样清理。
 
 ## 使用
 
 ```powershell
-proxy on | off [-git|-env]      开启/关闭代理（默认全部，可只开关 git 或终端）
-proxy git on | git off          旧写法，等价于 proxy on -git
+proxy on | off [-git|-env|-npm|-pip]  开启/关闭代理（默认全部，可只开关某个工具）
+proxy git on | git off                旧写法，等价于 proxy on -git
+proxy npm on | npm off                旧写法，等价于 proxy on -npm
+proxy pip on | pip off                旧写法，等价于 proxy on -pip
 proxy status                    查看当前生效状态
 proxy set <地址>                 设置代理地址，如: proxy set http://127.0.0.1:7890
 proxy set-auth <用户名>          设置认证（密码交互式输入，不回显）
@@ -61,6 +67,8 @@ proxy test                      测试代理连通性
 | `proxyAddr` | `http://127.0.0.1:7890` | 代理地址 |
 | `authUser` / `authPass` | 空 | 认证信息（`proxy set-auth` 写入，显示时打码） |
 | `gitProxy` | `true` | 是否把 Git 代理一起开关 |
+| `npmProxy` | `true` | 是否把 npm 代理（`.npmrc`）一起开关 |
+| `pipProxy` | `true` | 是否把 pip 代理（`pip.ini`）一起开关 |
 
 > 代理地址中的特殊字符（`@`、`:`、`/`）需要 URL 编码，`proxy set-auth` 已自动处理。
 
@@ -68,6 +76,8 @@ proxy test                      测试代理连通性
 
 - **终端代理**：设置当前会话的 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY`，只影响当前终端
 - **Git 代理**：写入 `git config --global http.proxy` / `https.proxy`，全仓库生效
+- **npm 代理**：写入 `~/.npmrc` 的 `proxy` / `https-proxy`（npm 不读环境变量，必须单独配置）
+- **pip 代理**：写入 `pip.ini` 的 `global.proxy`（pip 也会读环境变量，写配置让代理跨会话生效；`pip config unset` 需要 pip ≥ 22）
 - 本地代理客户端（Clash / v2rayN 等）**不需要认证**，认证在客户端内部完成；仅直连远程认证代理时才需要 `proxy set-auth`
 - 如果之前手动配置过旧版 `proxy` 函数，请从 `$PROFILE` 中删除旧函数（模块版会覆盖）
 

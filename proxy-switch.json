@@ -1,6 +1,6 @@
 {
   "version": "1.0.5",
-  "description": "PowerShell 模块：终端与 Git 代理一键切换（proxy on/off/status/set/set-auth/edit/test）",
+  "description": "PowerShell 模块：终端 / Git / npm / pip 代理一键切换（proxy on/off/status/set/set-auth/edit/test）",
   "homepage": "https://github.com/cv0w0vc/proxy-switch",
   "license": "MIT",
   "notes": [

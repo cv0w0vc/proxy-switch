@@ -1,9 +1,9 @@
 # ============================================================================
-#  ProxySwitch - 终端与 Git 代理一键切换
+#  ProxySwitch - 终端 / Git / npm / pip 代理一键切换
 #
 #  命令: proxy on|off|status|set|set-auth|unset-auth|edit|config|test
 #  配置: ~/.config/proxy-switch/config.json
-#  依赖: Git（可选，配置 gitProxy=false 时无需）
+#  依赖: Git / npm / pip（可选，各自有配置开关，未安装或关闭时自动跳过）
 # ============================================================================
 
 $script:ConfigPath = Join-Path $env:USERPROFILE ".config\proxy-switch\config.json"
@@ -17,6 +17,8 @@ function Get-ProxyConfig {
             authUser       = ""
             authPass       = ""
             gitProxy       = $true
+            npmProxy       = $true
+            pipProxy       = $true
         }
     }
     $raw = Get-Content -Path $script:ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -25,6 +27,8 @@ function Get-ProxyConfig {
         authUser       = if ($null -ne $raw.authUser) { [string]$raw.authUser } else { "" }
         authPass       = if ($null -ne $raw.authPass) { [string]$raw.authPass } else { "" }
         gitProxy       = if ($null -ne $raw.gitProxy) { [bool]$raw.gitProxy } else { $true }
+        npmProxy       = if ($null -ne $raw.npmProxy) { [bool]$raw.npmProxy } else { $true }
+        pipProxy       = if ($null -ne $raw.pipProxy) { [bool]$raw.pipProxy } else { $true }
     }
 }
 
@@ -85,6 +89,28 @@ function Set-ProxyState {
         }
     }
 
+    if ($Scope -in "all", "npm" -and $cfg.npmProxy -and (Get-Command npm -ErrorAction SilentlyContinue)) {
+        if ($State -eq "on") {
+            $addr = Get-EffectiveProxyAddr
+            npm config set proxy        $addr
+            npm config set https-proxy  $addr
+        }
+        else {
+            npm config delete proxy       2>$null
+            npm config delete https-proxy 2>$null
+        }
+    }
+
+    if ($Scope -in "all", "pip" -and $cfg.pipProxy -and (Get-Command pip -ErrorAction SilentlyContinue)) {
+        if ($State -eq "on") {
+            $addr = Get-EffectiveProxyAddr
+            pip config set global.proxy $addr
+        }
+        else {
+            pip config unset global.proxy 2>$null
+        }
+    }
+
     if (-not $Quiet) {
         if ($State -eq "on") {
             Write-Host ("代理已开启: " + (Get-MaskedProxyAddr)) -ForegroundColor Green
@@ -101,6 +127,8 @@ function Show-ProxyStatus {
     Write-Host ("代理地址 : " + (Get-MaskedProxyAddr))
     Write-Host ("认证     : " + $(if ($cfg.authUser) { "已启用 ($($cfg.authUser))" } else { "无" }))
     Write-Host ("Git 管理 : " + $(if ($cfg.gitProxy) { "随开关一起" } else { "不管理" }))
+    Write-Host ("npm 管理 : " + $(if ($cfg.npmProxy) { "随开关一起" } else { "不管理" }))
+    Write-Host ("pip 管理 : " + $(if ($cfg.pipProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ""
     $envHttp  = [bool]$env:HTTP_PROXY
     $envHttps = [bool]$env:HTTPS_PROXY
@@ -108,11 +136,28 @@ function Show-ProxyStatus {
     if (Get-Command git -ErrorAction SilentlyContinue) {
         $gitHttp = [bool](git config --global --get http.proxy 2>$null)
     }
+    $npmSet  = $false
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        # npm >= 11 对含认证的 URL 在 config get 时脱敏为空，改读 .npmrc 文件判断
+        $npmrc = npm config get userconfig 2>$null
+        if (-not $npmrc) { $npmrc = Join-Path $env:USERPROFILE ".npmrc" }
+        if (Test-Path $npmrc) {
+            $npmSet = [bool](Get-Content $npmrc -ErrorAction SilentlyContinue |
+                Where-Object { $_ -match '^\s*(proxy|https-proxy)\s*=\s*\S' })
+        }
+    }
+    $pipSet  = $false
+    if (Get-Command pip -ErrorAction SilentlyContinue) {
+        $pipVal = pip config get global.proxy 2>$null
+        $pipSet = [bool]$pipVal
+    }
 
     foreach ($item in @(
         @{ Label = "终端 HTTP_PROXY "; Value = $envHttp  },
         @{ Label = "终端 HTTPS_PROXY"; Value = $envHttps },
-        @{ Label = "Git  http.proxy "; Value = $gitHttp  }
+        @{ Label = "Git  http.proxy "; Value = $gitHttp  },
+        @{ Label = "npm  proxy      "; Value = $npmSet   },
+        @{ Label = "pip  proxy      "; Value = $pipSet   }
     )) {
         Write-Host ($item.Label + " : ") -NoNewline
         if ($item.Value) {
@@ -174,6 +219,8 @@ function Show-ProxyConfig {
     Write-Host ("代理地址 : " + (Get-MaskedProxyAddr))
     Write-Host ("认证用户 : " + $(if ($cfg.authUser) { $cfg.authUser } else { "(无)" }))
     Write-Host ("Git 管理 : " + $cfg.gitProxy)
+    Write-Host ("npm 管理 : " + $cfg.npmProxy)
+    Write-Host ("pip 管理 : " + $cfg.pipProxy)
 }
 
 function Open-ProxyConfig {
@@ -231,17 +278,21 @@ function proxy {
         [Parameter(Position = 1)][string]$Target = "",
         [switch]$Git,
         [switch]$Env,
+        [switch]$Npm,
+        [switch]$Pip,
         [switch]$Quiet
     )
 
-    # 兼容旧写法: proxy git on / proxy env off
+    # 兼容旧写法: proxy git on / proxy env off / proxy npm on / proxy pip on
     $scope = "all"
-    if ($Action -in "git", "env") {
+    if ($Action -in "git", "env", "npm", "pip") {
         $scope = $Action
         $Action = if ($Target) { $Target } else { "on" }
     }
     if ($Git) { $scope = "git" }
     if ($Env) { $scope = "env" }
+    if ($Npm) { $scope = "npm" }
+    if ($Pip) { $scope = "pip" }
 
     switch ($Action.ToLower()) {
         "on"         { Set-ProxyState -State on  -Scope $scope -Quiet:$Quiet }
@@ -260,18 +311,20 @@ function proxy {
 
 function Show-ProxyHelp {
     Write-Host @"
-ProxySwitch - 终端与 Git 代理一键切换
+ProxySwitch - 终端 / Git / npm / pip 代理一键切换
 
 用法:
-  proxy on | off [-git|-env]      开启/关闭代理（默认全部，可只开关 git 或终端）
-  proxy git on | git off          旧写法，等价于 proxy on -git
-  proxy status                    查看当前生效状态
-  proxy set <地址>                 设置代理地址，如: proxy set http://127.0.0.1:7890
-  proxy set-auth <用户名>          设置认证（密码交互输入）
-  proxy unset-auth                清除认证
-  proxy config                    查看配置文件
-  proxy edit                      用编辑器打开配置文件
-  proxy test                      测试代理连通性
+  proxy on | off [-git|-env|-npm|-pip]  开启/关闭代理（默认全部，可只开关某个工具）
+  proxy git on | git off                旧写法，等价于 proxy on -git
+  proxy npm on | npm off                旧写法，等价于 proxy on -npm
+  proxy pip on | pip off                旧写法，等价于 proxy on -pip
+  proxy status                          查看当前生效状态
+  proxy set <地址>                       设置代理地址，如: proxy set http://127.0.0.1:7890
+  proxy set-auth <用户名>                设置认证（密码交互输入）
+  proxy unset-auth                      清除认证
+  proxy config                          查看配置文件
+  proxy edit                            用编辑器打开配置文件
+  proxy test                            测试代理连通性
 "@
 }
 
