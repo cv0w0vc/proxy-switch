@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "PowerShell 模块：终端 / Git / npm / pip 代理一键切换（proxy on/off/status/set/set-auth/edit/test）",
   "homepage": "https://github.com/cv0w0vc/proxy-switch",
   "license": "MIT",
@@ -8,9 +8,9 @@
     "用法: proxy on / proxy off / proxy set http://127.0.0.1:7890 / proxy status",
     "配置文件: ~/.config/proxy-switch/config.json（可用 proxy edit 打开）"
   ],
-  "url": "https://github.com/cv0w0vc/proxy-switch/archive/refs/tags/v1.0.6.zip",
-  "hash": "36D9617458DAB8EBBA78A913755CD638F85183DE7F95C2B96F70EAF64E7CA54E",
-  "extract_dir": "proxy-switch-1.0.6",
+  "url": "https://github.com/cv0w0vc/proxy-switch/archive/refs/tags/v1.0.7.zip",
+  "hash": "FCEF1F3160FE21101F9E099BE9964BF5762D90670B80820696089FDD9F39559D",
+  "extract_dir": "proxy-switch-1.0.7",
   "installer": {
     "script": "& \"$dir\\install.ps1\""
   },
