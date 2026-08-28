@@ -1,6 +1,6 @@
-﻿@{
+@{
     RootModule           = 'ProxySwitch.psm1'
-    ModuleVersion        = '0.1.0'
+    ModuleVersion        = '1.0.2'
     GUID                 = '3f8a2c1e-9b4d-4f6a-8c2e-1d5b7a9e3c0f'
     Author               = 'proxy-switch'
     CompanyName          = ''
@@ -18,3 +18,4 @@
         }
     }
 }
+
