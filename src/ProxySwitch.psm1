@@ -185,14 +185,41 @@ function Open-ProxyConfig {
 }
 
 function Test-ProxyConnection {
-    $addr = Get-EffectiveProxyAddr
-    if (-not $addr) { throw "未配置代理地址" }
+    $cfg = Get-ProxyConfig
+    if (-not $cfg.proxyAddr) { throw "未配置代理地址" }
+
+    $target = "https://www.google.com"
+    $webArgs = @{
+        Uri            = $target
+        Proxy          = $cfg.proxyAddr
+        TimeoutSec     = 10
+        UseBasicParsing = $true
+    }
+    if ($cfg.authUser) {
+        $sec = ConvertTo-SecureString $cfg.authPass -AsPlainText -Force
+        $webArgs.ProxyCredential = New-Object System.Management.Automation.PSCredential($cfg.authUser, $sec)
+    }
+
     try {
-        $r = Invoke-WebRequest -Uri "https://github.com" -Proxy $addr -TimeoutSec 10 -UseBasicParsing
-        Write-Host ("代理可用: HTTP " + [int]$r.StatusCode) -ForegroundColor Green
+        $r = Invoke-WebRequest @webArgs
+        Write-Host ("代理可用: HTTP " + [int]$r.StatusCode + " (" + $target + ")") -ForegroundColor Green
     }
     catch {
-        Write-Host ("代理测试失败: " + $_.Exception.Message) -ForegroundColor Red
+        # 识别 407：优先取异常链里的状态码，兜底匹配消息文本（兼容 PS 7 / PS 5.1）
+        $status = $null
+        $ex = $_.Exception
+        while ($null -ne $ex) {
+            if ($ex.Response) { $status = [int]$ex.Response.StatusCode; break }
+            $ex = $ex.InnerException
+        }
+        if (-not $status -and $_.Exception.Message -match '407') { $status = 407 }
+
+        if ($status -eq 407) {
+            Write-Host "代理测试失败: 代理要求认证 (407)，请运行 proxy set-auth 检查认证配置" -ForegroundColor Red
+        }
+        else {
+            Write-Host ("代理测试失败: 无法通过代理访问 " + $target + "，请检查代理地址或网络: " + $_.Exception.Message) -ForegroundColor Red
+        }
     }
 }
 
