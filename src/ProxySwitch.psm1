@@ -102,11 +102,25 @@ function Show-ProxyStatus {
     Write-Host ("认证     : " + $(if ($cfg.authUser) { "已启用 ($($cfg.authUser))" } else { "无" }))
     Write-Host ("Git 管理 : " + $(if ($cfg.gitProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ""
-    Write-Host ("终端 HTTP_PROXY : " + [string]$env:HTTP_PROXY)
-    Write-Host ("终端 HTTPS_PROXY: " + [string]$env:HTTPS_PROXY)
+    $envHttp  = [bool]$env:HTTP_PROXY
+    $envHttps = [bool]$env:HTTPS_PROXY
+    $gitHttp  = $false
     if (Get-Command git -ErrorAction SilentlyContinue) {
-        $gp = git config --global --get http.proxy 2>$null
-        Write-Host ("Git  http.proxy : " + [string]$gp)
+        $gitHttp = [bool](git config --global --get http.proxy 2>$null)
+    }
+
+    foreach ($item in @(
+        @{ Label = "终端 HTTP_PROXY "; Value = $envHttp  },
+        @{ Label = "终端 HTTPS_PROXY"; Value = $envHttps },
+        @{ Label = "Git  http.proxy "; Value = $gitHttp  }
+    )) {
+        Write-Host ($item.Label + " : ") -NoNewline
+        if ($item.Value) {
+            Write-Host "true" -ForegroundColor Green
+        }
+        else {
+            Write-Host "false" -ForegroundColor DarkGray
+        }
     }
 }
 
