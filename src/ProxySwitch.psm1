@@ -130,8 +130,7 @@ function Show-ProxyStatus {
     Write-Host ("npm 管理 : " + $(if ($cfg.npmProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ("pip 管理 : " + $(if ($cfg.pipProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ""
-    $envHttp  = [bool]$env:HTTP_PROXY
-    $envHttps = [bool]$env:HTTPS_PROXY
+    $envSet   = [bool]($env:HTTP_PROXY -or $env:HTTPS_PROXY)
     $gitHttp  = $false
     if (Get-Command git -ErrorAction SilentlyContinue) {
         $gitHttp = [bool](git config --global --get http.proxy 2>$null)
@@ -153,11 +152,10 @@ function Show-ProxyStatus {
     }
 
     foreach ($item in @(
-        @{ Label = "终端 HTTP_PROXY "; Value = $envHttp  },
-        @{ Label = "终端 HTTPS_PROXY"; Value = $envHttps },
-        @{ Label = "Git  http.proxy "; Value = $gitHttp  },
-        @{ Label = "npm  proxy      "; Value = $npmSet   },
-        @{ Label = "pip  proxy      "; Value = $pipSet   }
+        @{ Label = "终端             "; Value = $envSet  },
+        @{ Label = "Git  http.proxy  "; Value = $gitHttp  },
+        @{ Label = "npm  proxy       "; Value = $npmSet   },
+        @{ Label = "pip  proxy       "; Value = $pipSet   }
     )) {
         Write-Host ($item.Label + " : ") -NoNewline
         if ($item.Value) {
