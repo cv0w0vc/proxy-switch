@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 
 $Root     = Split-Path $MyInvocation.MyCommand.Path
 $Manifest = Join-Path $Root "proxy-switch.json"
-$Psd1     = Join-Path $Root "src\ProxySwitch.psd1"
+$Psd1Path = Join-Path $Root "src\ProxySwitch.psd1"
 Set-Location $Root
 
 # ---------- 1. 确定新版本 ----------
@@ -89,9 +89,9 @@ $j.hash        = $hash
 $j.extract_dir = $dirName
 $j | ConvertTo-Json -Depth 5 | Set-Content $Manifest -Encoding UTF8
 
-$psd1 = Get-Content $Psd1 -Raw
-$psd1 = $psd1 -replace "ModuleVersion\s*=\s*'[^']*'", "ModuleVersion        = '$new'"
-Set-Content $Psd1 $psd1 -Encoding UTF8
+$psd1Content = Get-Content $Psd1Path -Raw
+$psd1Content = $psd1Content -replace "ModuleVersion\s*=\s*'[^']*'", "ModuleVersion        = '$new'"
+Set-Content $Psd1Path $psd1Content -Encoding UTF8
 Write-Host "==> 已更新 proxy-switch.json + ModuleVersion" -ForegroundColor Green
 
 # ---------- 6. 提交并推送 manifest 更新 ----------
