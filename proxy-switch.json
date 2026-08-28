@@ -13,5 +13,8 @@
     "extract_dir": "proxy-switch-1.0.0",
     "installer": {
         "script": "& \"$dir\\install.ps1\""
+    },
+    "uninstaller": {
+        "script": "& \"$dir\\uninstall.ps1\""
     }
 }
