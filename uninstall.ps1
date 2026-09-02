@@ -2,7 +2,7 @@
 #  ProxySwitch 卸载脚本（scoop uninstaller 调用，也可手动运行）
 #
 #  清理内容:
-#    1. 清理运行时代理配置（git / npm / pip + 当前会话环境变量，内联实现，不依赖模块）
+#    1. 清理运行时代理配置（git / npm / pip / scoop + 当前会话环境变量，内联实现，不依赖模块）
 #    2. 删除模块目录（PS7 + PS5.1 的 Documents\...\Modules\ProxySwitch）
 #    3. 从两个 $PROFILE 移除 ProxySwitch 引导块（若文件变空则删除文件）
 #    4. 删除配置文件（~/.config/proxy-switch/config.json，含认证信息）
@@ -25,8 +25,11 @@ if (Get-Command npm -ErrorAction SilentlyContinue) {
 if (Get-Command pip -ErrorAction SilentlyContinue) {
     pip config unset global.proxy 2>$null
 }
+if (Get-Command scoop -ErrorAction SilentlyContinue) {
+    scoop config rm proxy 6>$null 2>$null
+}
 Remove-Item Env:HTTP_PROXY, Env:HTTPS_PROXY, Env:ALL_PROXY, Env:NO_PROXY -ErrorAction SilentlyContinue
-Write-Host "已清理运行时代理配置 (git / npm / pip / 环境变量)"
+Write-Host "已清理运行时代理配置 (git / npm / pip / scoop / 环境变量)"
 
 # 2. 删除模块目录
 $ModuleDirs = @(

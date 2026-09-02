@@ -5,7 +5,7 @@
     Author               = 'proxy-switch'
     CompanyName          = ''
     Copyright            = '(c) 2026 proxy-switch'
-    Description          = '终端与 Git 代理一键切换：proxy on/off/status/set/set-auth/edit/test，支持 scoop 安装。'
+    Description          = '终端与 Git 代理一键切换：proxy on/off/status/set/set-auth/edit/test，支持 scoop 安装与 scoop 代理管理。'
     PowerShellVersion    = '5.1'
     FunctionsToExport    = @('proxy')
     CmdletsToExport      = @()

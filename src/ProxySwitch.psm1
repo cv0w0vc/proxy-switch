@@ -1,9 +1,9 @@
 # ============================================================================
-#  ProxySwitch - 终端 / Git / npm / pip 代理一键切换
+#  ProxySwitch - 终端 / Git / npm / pip / scoop 代理一键切换
 #
 #  命令: proxy on|off|status|set|set-auth|unset-auth|edit|config|test
 #  配置: ~/.config/proxy-switch/config.json
-#  依赖: Git / npm / pip（可选，各自有配置开关，未安装或关闭时自动跳过）
+#  依赖: Git / npm / pip / scoop（可选，各自有配置开关，未安装或关闭时自动跳过）
 # ============================================================================
 
 $script:ConfigPath = Join-Path $env:USERPROFILE ".config\proxy-switch\config.json"
@@ -19,6 +19,7 @@ function Get-ProxyConfig {
             gitProxy       = $true
             npmProxy       = $true
             pipProxy       = $true
+            scoopProxy     = $true
         }
     }
     $raw = Get-Content -Path $script:ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -29,6 +30,7 @@ function Get-ProxyConfig {
         gitProxy       = if ($null -ne $raw.gitProxy) { [bool]$raw.gitProxy } else { $true }
         npmProxy       = if ($null -ne $raw.npmProxy) { [bool]$raw.npmProxy } else { $true }
         pipProxy       = if ($null -ne $raw.pipProxy) { [bool]$raw.pipProxy } else { $true }
+        scoopProxy     = if ($null -ne $raw.scoopProxy) { [bool]$raw.scoopProxy } else { $true }
     }
 }
 
@@ -56,6 +58,51 @@ function Get-EffectiveProxyAddr {
 function Get-MaskedProxyAddr {
     $addr = Get-EffectiveProxyAddr
     return ($addr -replace '^(https?://[^:/]+):[^@]+@', '$1:****@')
+}
+
+# ---------------- Scoop ----------------
+
+function Get-ScoopProxyAddr {
+    # scoop config 的 proxy 格式为 [user:pass@]host:port（不带协议头），
+    # 认证信息里的 @ 和 : 需用反斜杠转义（scoop 内部按此解析）
+    $cfg = Get-ProxyConfig
+    $addr = $cfg.proxyAddr -replace '^[a-zA-Z][a-zA-Z0-9+.-]*://', ''
+    if ($cfg.authUser) {
+        $user = ($cfg.authUser -replace '([@:])', '\$1')
+        $pass = ($cfg.authPass -replace '([@:])', '\$1')
+        return ($user + ":" + $pass + "@" + $addr)
+    }
+    return $addr
+}
+
+function Get-ScoopConfigPath {
+    # 定位 scoop config.json，逻辑与 scoop 一致：便携版在 scoop 根目录，
+    # 否则默认 ~/.config/scoop/config.json（或 $XDG_CONFIG_HOME）
+    $roots = @()
+    $cmd = Get-Command scoop -ErrorAction SilentlyContinue
+    if ($cmd) {
+        $root = Split-Path (Split-Path $cmd.Source -Parent) -Parent
+        if ($root) { $roots += $root }
+    }
+    if ($env:SCOOP) { $roots += $env:SCOOP }
+    foreach ($root in $roots) {
+        $portable = Join-Path $root "config.json"
+        if (Test-Path $portable) { return $portable }
+    }
+    $configHome = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path $env:USERPROFILE ".config" }
+    return (Join-Path $configHome "scoop\config.json")
+}
+
+function Get-ScoopProxyValue {
+    # 读取 scoop 当前 proxy 配置值；未设置返回 $null（只读文件，避免调用 scoop 的额外输出）
+    $path = Get-ScoopConfigPath
+    if (-not (Test-Path $path)) { return $null }
+    try {
+        $cfg = Get-Content $path -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($null -ne $cfg.proxy -and "$($cfg.proxy)" -ne "") { return [string]$cfg.proxy }
+    }
+    catch { }
+    return $null
 }
 
 # ---------------- 状态开关 ----------------
@@ -111,6 +158,16 @@ function Set-ProxyState {
         }
     }
 
+    if ($Scope -in "all", "scoop" -and $cfg.scoopProxy -and (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        if ($State -eq "on") {
+            scoop config proxy (Get-ScoopProxyAddr) 6>$null 2>$null
+        }
+        elseif (Get-ScoopProxyValue) {
+            # 未设置过时跳过，避免 scoop 凭空创建空的 config.json
+            scoop config rm proxy 6>$null 2>$null
+        }
+    }
+
     if (-not $Quiet) {
         if ($State -eq "on") {
             Write-Host ("代理已开启: " + (Get-MaskedProxyAddr)) -ForegroundColor Green
@@ -129,6 +186,7 @@ function Show-ProxyStatus {
     Write-Host ("Git 管理 : " + $(if ($cfg.gitProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ("npm 管理 : " + $(if ($cfg.npmProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ("pip 管理 : " + $(if ($cfg.pipProxy) { "随开关一起" } else { "不管理" }))
+    Write-Host ("scoop 管理: " + $(if ($cfg.scoopProxy) { "随开关一起" } else { "不管理" }))
     Write-Host ""
     $envSet   = [bool]($env:HTTP_PROXY -or $env:HTTPS_PROXY)
     $gitHttp  = $false
@@ -150,12 +208,17 @@ function Show-ProxyStatus {
         $pipVal = pip config get global.proxy 2>$null
         $pipSet = [bool]$pipVal
     }
+    $scoopSet = $false
+    if (Get-Command scoop -ErrorAction SilentlyContinue) {
+        $scoopSet = [bool](Get-ScoopProxyValue)
+    }
 
     foreach ($item in @(
         @{ Label = "终端             "; Value = $envSet  },
         @{ Label = "Git  http.proxy  "; Value = $gitHttp  },
         @{ Label = "npm  proxy       "; Value = $npmSet   },
-        @{ Label = "pip  proxy       "; Value = $pipSet   }
+        @{ Label = "pip  proxy       "; Value = $pipSet   },
+        @{ Label = "scoop proxy      "; Value = $scoopSet }
     )) {
         Write-Host ($item.Label + " : ") -NoNewline
         if ($item.Value) {
@@ -219,6 +282,7 @@ function Show-ProxyConfig {
     Write-Host ("Git 管理 : " + $cfg.gitProxy)
     Write-Host ("npm 管理 : " + $cfg.npmProxy)
     Write-Host ("pip 管理 : " + $cfg.pipProxy)
+    Write-Host ("scoop 管理: " + $cfg.scoopProxy)
 }
 
 function Open-ProxyConfig {
@@ -278,12 +342,13 @@ function proxy {
         [switch]$Env,
         [switch]$Npm,
         [switch]$Pip,
+        [switch]$Scoop,
         [switch]$Quiet
     )
 
-    # 兼容旧写法: proxy git on / proxy env off / proxy npm on / proxy pip on
+    # 兼容旧写法: proxy git on / proxy env off / proxy npm on / proxy pip on / proxy scoop on
     $scope = "all"
-    if ($Action -in "git", "env", "npm", "pip") {
+    if ($Action -in "git", "env", "npm", "pip", "scoop") {
         $scope = $Action
         $Action = if ($Target) { $Target } else { "on" }
     }
@@ -291,6 +356,7 @@ function proxy {
     if ($Env) { $scope = "env" }
     if ($Npm) { $scope = "npm" }
     if ($Pip) { $scope = "pip" }
+    if ($Scoop) { $scope = "scoop" }
 
     switch ($Action.ToLower()) {
         "on"         { Set-ProxyState -State on  -Scope $scope -Quiet:$Quiet }
@@ -309,13 +375,14 @@ function proxy {
 
 function Show-ProxyHelp {
     Write-Host @"
-ProxySwitch - 终端 / Git / npm / pip 代理一键切换
+ProxySwitch - 终端 / Git / npm / pip / scoop 代理一键切换
 
 用法:
-  proxy on | off [-git|-env|-npm|-pip]  开启/关闭代理（默认全部，可只开关某个工具）
+  proxy on | off [-git|-env|-npm|-pip|-scoop]  开启/关闭代理（默认全部，可只开关某个工具）
   proxy git on | git off                旧写法，等价于 proxy on -git
   proxy npm on | npm off                旧写法，等价于 proxy on -npm
   proxy pip on | pip off                旧写法，等价于 proxy on -pip
+  proxy scoop on | scoop off            旧写法，等价于 proxy on -scoop
   proxy status                          查看当前生效状态
   proxy set <地址>                       设置代理地址，如: proxy set http://127.0.0.1:7890
   proxy set-auth <用户名>                设置认证（密码交互输入）
