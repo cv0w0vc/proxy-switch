@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  ProxySwitch 一键发布脚本
 #
 #  用法:
@@ -22,7 +22,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Root     = Split-Path $MyInvocation.MyCommand.Path
-$Manifest = Join-Path $Root "proxy-switch.json"
+$Manifest = Join-Path $Root "bucket\proxy-switch.json"
 $Psd1Path = Join-Path $Root "src\ProxySwitch.psd1"
 Set-Location $Root
 
@@ -95,7 +95,7 @@ Set-Content $Psd1Path $psd1Content -Encoding UTF8
 Write-Host "==> 已更新 proxy-switch.json + ModuleVersion" -ForegroundColor Green
 
 # ---------- 6. 提交并推送 manifest 更新 ----------
-git add proxy-switch.json src/ProxySwitch.psd1
+git add bucket/proxy-switch.json src/ProxySwitch.psd1
 if (git status --porcelain) {
     git commit -m "release v$new"
 }

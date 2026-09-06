@@ -94,7 +94,8 @@ proxy-switch/
 ├── install.ps1            # 安装脚本（scoop installer 调用）
 ├── uninstall.ps1          # 卸载脚本（scoop uninstaller 调用）
 ├── release.ps1            # 一键发布脚本（打包+算哈希+更新 manifest）
-├── proxy-switch.json      # scoop manifest（含 installer/uninstaller）
+├── bucket/
+│   └── proxy-switch.json  # scoop manifest（含 installer/uninstaller）
 └── README.md
 ```
 
